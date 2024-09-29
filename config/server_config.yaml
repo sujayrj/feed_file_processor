@@ -1,0 +1,13 @@
+servers:
+  i-star-cx:
+    host: sftp.istar-cx.com
+    port: 22
+    username: istaruser
+    ssh_key_path: /path/to/ssh/key
+    passphrase: some-passphrase
+  another-server:
+    host: sftp.another-server.com
+    port: 2222
+    username: anotheruser
+    ssh_key_path: /path/to/another/key
+    passphrase: another-passphrase

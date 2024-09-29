@@ -3,7 +3,7 @@ from receiver.receiver_factory import ReceiverFactory
 from utils.logger import setup_logging
 
 def main():
-    setup_logging()
+    setup_logging('../config/receiver_logging.yaml')
 
     # Load configuration from YAML
     with open('../config/receiver_config.yaml', 'r') as config_file:

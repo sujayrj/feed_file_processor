@@ -1,0 +1,17 @@
+directories:
+  - source_directory: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/ops-shared-drive"
+    destination_type: shared_drive
+    destination_details:
+      shared_drive_path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/destination_shared_drive"
+    file_extension: .csv
+    trigger_extension: .trg
+    enabled: True
+
+  - source_directory: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/gloss-core"
+    destination_type: external_server
+    destination_details:
+      server_name: "gloss-core"
+      destination_path: <remote path>
+    file_extension: .dat
+    trigger_extension: .trg
+    enabled: False
