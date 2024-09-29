@@ -1,0 +1,30 @@
+receivers:
+  - name: "i-star cx receiver_system"
+    servers:
+      - server_name: "i-star-cx"
+        source_path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/source"
+        files:
+          - file_name_pattern: "OL_0360_nn_hhmm_CXI046.dat"
+            destination:
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/ops-shared-drive"
+                should_process: "Rename"
+                process_config:
+                  rename_pattern: "CXI046_YYMMDD_<nnnnn>_01(MMDD).csv"
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/gloss-core"
+                should_process: "None"
+          - file_name_pattern: "OL_0360_nn_hhmm_CXI249.dat"
+            destination:
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/ops-shared-drive"
+                should_process: "Rename"
+                process_config:
+                  rename_pattern: "CXI249_YYMMDD_<nnnnn>_01(MMDD).csv"
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/gloss-core"
+                should_process: "None"
+          - file_name_pattern: "OL_0360_nn_hhmm_CXI027.dat"
+            destination:
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/ops-shared-drive"
+                should_process: "Rename"
+                process_config:
+                  rename_pattern: "CXI027_YYMMDD_<nnnnn>_01(MMDD).csv"
+              - path: "/Users/sujayjeppu/CodingWorkspace/office_work/i-star-cx/working/destination/gloss-core"
+                should_process: "None"
