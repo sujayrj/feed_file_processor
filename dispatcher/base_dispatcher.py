@@ -5,14 +5,14 @@ from utils.logger import get_logger
 
 
 class BaseDispatcher(ABC):
-    def __init__(self, source_directory, file_extension, trigger_extension):
+    def __init__(self, config):
         self.source_directory = Path(source_directory)
         self.file_extension = file_extension
         self.trigger_extension = trigger_extension
         self.logger = get_logger('dispatcher_logger')
 
     @abstractmethod
-    def transfer(self, destination_details):
+    def dispatch(self, destination_details):
         """Method to transfer files to the destination."""
         pass
 

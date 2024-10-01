@@ -1,10 +1,22 @@
 from .base_dispatcher import BaseDispatcher
 from pathlib import Path
 import shutil
+import logging
+
 
 class SharedDriveDispatcher(BaseDispatcher):
-    def transfer(self, destination_details):
+    def __init__(self, config, environment):
+        self.config = config
+        self.environment = environment
+        self.logger = logging.getLogger('dispatcher_logger')
+
+    def dispatch(self, destination_details):
         """Transfer files to a shared drive."""
+        source_directory = self.config['source_directory']
+        destination_details = self.config['destination_details']
+        file_extension = self.config['file_extension']
+        trigger_extension = self.config['trigger_extension']
+
         try:
             destination_path = Path(destination_details['shared_drive_path'])
             destination_path.mkdir(parents=True, exist_ok=True)

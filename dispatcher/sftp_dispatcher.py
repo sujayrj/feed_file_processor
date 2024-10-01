@@ -1,8 +1,16 @@
+import logging
+
 from .base_dispatcher import BaseDispatcher
 from sftp_helper import SFTPHelper
 
+
 class SFTPDispatcher(BaseDispatcher):
-    def transfer(self, destination_details, server_config):
+    def __init__(self, config, environment):
+        self.config = config
+        self.environment = environment
+        self.logger = logging.getLogger('dispatcher_logger')
+
+    def dispatch(self, destination_details, server_config):
         """Transfer files to an external server via SFTP."""
         try:
             destination_path = destination_details['destination_path']

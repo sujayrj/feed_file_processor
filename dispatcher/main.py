@@ -1,31 +1,41 @@
+# dispatcher/main.py
+
 import yaml
+import logging
+import sys
 from dispatcher.dispatcher_factory import DispatcherFactory
 from utils.logger import setup_logging
 
+
 def main():
-    # Set up logging
-    setup_logging(path='config/dispatcher_logging.yaml')
+    if len(sys.argv) < 2:
+        print("Usage: python main.py <ENVIRONMENT>")
+        sys.exit(1)
 
-    # Load dispatcher configuration
+    environment = sys.argv[1]  # Fetch the environment parameter (DEV, ST, UAT, PROD)
+    setup_logging('config/dispatcher_logging.yaml')
+
+    # Load dispatcher config
     try:
-        with open('../config/dispatcher_config.yaml', 'r') as f:
-            dispatcher_config = yaml.safe_load(f)
+        with open('config/dispatcher_config.yaml', 'r') as file:
+            config = yaml.safe_load(file)
     except FileNotFoundError as e:
-        raise RuntimeError(f"Dispatcher configuration file not found: {str(e)}")
+        raise RuntimeError("Dispatcher Configuration file not found : {}".format(str(e)))
     except yaml.YAMLError as e:
-        raise RuntimeError(f"Error parsing YAML file: {str(e)}")
+        raise RuntimeError("Error parsing YAML file : {}".format(str(e)))
     except Exception as e:
-        raise RuntimeError(f"Unknown error loading dispatcher configuration: {str(e)}")
+        raise RuntimeError("Unknown error loading Dispatcher configuration : {}".format(str(e)))
 
-    for directory_config in dispatcher_config['directories']:
-        if directory_config.get('enabled', False):
+    directories = config['directories']
+
+    for directory_config in directories:
+        dispatcher = DispatcherFactory.get_dispatcher(directory_config, environment)
+        if dispatcher:
             try:
-                dispatcher= DispatcherFactory.get_dispatcher(directory_config)
-                dispatcher.transfer(directory_config['destination_details'])
+                dispatcher.dispatch()
             except Exception as e:
-                # Log error and continue with the next directory
-                dispatcher.logger.error(f"Error processing directory {directory_config['source_directory']}: {str(e)}")
-                continue
+                logging.getLogger('dispatcher_logger').error(f"Error in processing: {e}")
+
 
 if __name__ == "__main__":
     main()

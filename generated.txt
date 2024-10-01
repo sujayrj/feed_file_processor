@@ -1,0 +1,191 @@
+To handle different environments (DEV, ST, UAT, PROD) with environment-specific configuration files, we can update the system to load the appropriate `dispatcher_config.yaml` based on the environment passed as a parameter when running the dispatcher. This will involve having separate configuration files for each environment (e.g., `dispatcher_config_DEV.yaml`, `dispatcher_config_UAT.yaml`, etc.) and selecting the appropriate one based on the input.
+
+### Solution Overview:
+
+1. **Dispatcher Configs**: Maintain separate configuration files for each environment:
+    - `dispatcher_config_DEV.yaml`
+    - `dispatcher_config_ST.yaml`
+    - `dispatcher_config_UAT.yaml`
+    - `dispatcher_config_PROD.yaml`
+
+2. **Command-line Argument for Environment**: The dispatcher script will take the environment as a command-line argument (or from environment variables) and load the corresponding config file.
+
+3. **Server Config Loader**: Similarly, server configuration files should be maintained for each environment.
+
+### Directory Structure
+
+```
+dispatcher/
+│
+├── dispatcher.py                  # Main entry point to run the dispatcher
+├── sftp_dispatcher.py              # SFTPDispatcher implementation
+├── shared_drive_dispatcher.py      # SharedDriveDispatcher implementation
+├── dispatcher_factory.py           # DispatcherFactory to load the correct dispatcher
+│
+├── config/
+│   ├── dispatcher_config_DEV.yaml     # Dispatcher config for DEV environment
+│   ├── dispatcher_config_UAT.yaml     # Dispatcher config for UAT environment
+│   ├── dispatcher_config_PROD.yaml    # Dispatcher config for PROD environment
+│   ├── server_info_DEV.yaml           # Server config for DEV environment
+│   ├── server_info_UAT.yaml           # Server config for UAT environment
+│   ├── server_info_PROD.yaml          # Server config for PROD environment
+│
+└── utils/
+    ├── server_config_loader.py    # Load server info based on environment
+    └── logger.py                  # Logging configuration
+```
+
+### Step-by-step Changes
+
+#### 1. Modify the **dispatcher.py** to accept the environment argument and load the corresponding config:
+
+```python
+# dispatcher/dispatcher.py
+
+import argparse
+import yaml
+import logging
+from dispatcher_factory import DispatcherFactory
+from utils.logger import setup_logging
+
+def load_config(environment):
+    """Load the dispatcher configuration based on the environment."""
+    config_path = f"config/dispatcher_config_{environment}.yaml"
+    try:
+        with open(config_path, 'r') as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Dispatcher config file for {environment} environment not found: {config_path}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Run the dispatcher to transfer files.")
+    parser.add_argument('--env', required=True, help="Specify the environment (e.g., DEV, ST, UAT, PROD)")
+    args = parser.parse_args()
+
+    environment = args.env.upper()  # Convert to uppercase for consistency
+
+    # Setup logging (common for all environments)
+    setup_logging()
+
+    # Load dispatcher config based on the environment
+    dispatcher_config = load_config(environment)
+
+    # Process each directory in the config
+    for directory_config in dispatcher_config['directories']:
+        if directory_config.get('enabled', False):
+            dispatcher = DispatcherFactory.get_dispatcher(directory_config, environment)
+            dispatcher.dispatch()
+
+if __name__ == '__main__':
+    main()
+```
+
+#### 2. Modify **ServerConfigLoader** to load the environment-specific server configuration:
+
+```python
+# utils/server_config_loader.py
+
+import yaml
+import os
+
+class ServerConfigLoader:
+    """Class to load server configurations for different environments."""
+
+    @staticmethod
+    def get_server_info(config, environment):
+        """
+        Retrieves server information for an external transfer from the server config file.
+
+        :param config: The config object containing details such as server name.
+        :param environment: The environment string (DEV, ST, UAT, PROD).
+        :return: Dictionary containing server connection details (host, port, username, etc.)
+        """
+        server_name = config.get('server_name')
+        server_config_path = "config/server_info_{}.yaml".format(environment)
+
+        if not os.path.exists(server_config_path):
+            raise FileNotFoundError("Server config file for {} not found: {}".format(environment, server_config_path))
+
+        with open(server_config_path, 'r') as file:
+            server_configs = yaml.safe_load(file)
+
+        server_info = server_configs.get('servers', {}).get(server_name)
+
+        if not server_info:
+            raise ValueError("No server configuration found for server: {} in {} environment".format(server_name, environment))
+
+        return server_info
+```
+
+#### 3. Example **dispatcher_config_DEV.yaml** (for DEV environment):
+
+```yaml
+directories:
+  - source_directory: "/path/to/dev/source"
+    destination_type: shared_drive
+    destination_details:
+      shared_drive_path: "/path/to/dev/shared_drive"
+    file_extension: .csv
+    trigger_extension: .trg
+    enabled: True
+
+  - source_directory: "/path/to/dev/source2"
+    destination_type: external_server
+    destination_details:
+      destination_path: "/remote/path/on/server"
+      server_name: "dev-server"
+    file_extension: .dat
+    trigger_extension: .trg
+    enabled: True
+```
+
+#### 4. Example **server_info_DEV.yaml** (for DEV environment):
+
+```yaml
+servers:
+  dev-server:
+    host: "dev.sftp.server.com"
+    port: 22
+    username: "dev_user"
+    ssh_key_path: "/path/to/dev/ssh/key"
+    passphrase: "optional_passphrase"
+```
+
+#### 5. **DispatcherFactory**: Include environment when creating dispatchers:
+
+```python
+# dispatcher/dispatcher_factory.py
+
+from sftp_dispatcher import SFTPDispatcher
+from shared_drive_dispatcher import SharedDriveDispatcher
+
+class DispatcherFactory:
+    @staticmethod
+    def get_dispatcher(config, environment):
+        destination_type = config['destination_type']
+
+        if destination_type == 'shared_drive':
+            return SharedDriveDispatcher(config, environment)
+        elif destination_type == 'external_server':
+            return SFTPDispatcher(config, environment)
+        else:
+            raise ValueError(f"Unknown destination type: {destination_type}")
+```
+
+### Steps to Run the Dispatcher:
+
+- Prepare separate YAML files for each environment (`dispatcher_config_DEV.yaml`, `dispatcher_config_UAT.yaml`, etc.).
+- Run the dispatcher with the `--env` argument to specify the environment:
+
+```bash
+python dispatcher.py --env DEV
+python dispatcher.py --env UAT
+```
+
+### Error Handling:
+
+- **Config Not Found**: If the environment-specific config file is not found, it will raise a `FileNotFoundError` with a clear message.
+- **Invalid Server Details**: If server details are missing or incomplete, a `ValueError` will be raised.
+- **Enabled Flag**: The dispatcher will only process directories marked as `enabled: True`.
+
+This approach allows for flexible environment management and clean separation of configurations per environment.
